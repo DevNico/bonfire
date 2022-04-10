@@ -30,6 +30,11 @@ import 'model/tiled_object_properties.dart';
 typedef ObjectBuilder = GameComponent Function(
     TiledObjectProperties properties);
 
+typedef DynamicObjectBuilder = GameComponent? Function(
+  String name,
+  TiledObjectProperties properties,
+);
+
 class TiledWorldMap {
   static const ORIENTATION_SUPPORTED = 'orthogonal';
   static const ABOVE_TYPE = 'above';
@@ -56,6 +61,7 @@ class TiledWorldMap {
   double _tileHeightOrigin = 0;
   bool fromServer = false;
   Map<String, ObjectBuilder> _objectsBuilder = Map();
+  final DynamicObjectBuilder? _dynamicObjectBuilder;
   Map<String, TileModelSprite> _tileModelSpriteCache = Map();
   int countTileLayer = 0;
   int countImageLayer = 0;
@@ -66,7 +72,8 @@ class TiledWorldMap {
     this.onError,
     this.tileSizeToUpdate = 0,
     Map<String, ObjectBuilder>? objectsBuilder,
-  }) {
+    DynamicObjectBuilder? dynamicObjectBuilder,
+  }) : _dynamicObjectBuilder = dynamicObjectBuilder {
     _objectsBuilder = objectsBuilder ?? Map();
     _basePath = path.replaceAll(path.split('/').last, '');
     fromServer = path.contains('http');
@@ -410,6 +417,25 @@ class TiledWorldMap {
 
           if (object != null) {
             _components.add(object);
+          }
+        } else {
+          if (element.name != null) {
+            final object = _dynamicObjectBuilder!.call(
+              element.name!,
+              TiledObjectProperties(
+                Vector2(x, y),
+                Vector2(width, height),
+                element.type,
+                element.rotation,
+                _extractOtherProperties(element.properties),
+                element.name,
+                element.id,
+              ),
+            );
+
+            if (object != null) {
+              _components.add(object);
+            }
           }
         }
       },
