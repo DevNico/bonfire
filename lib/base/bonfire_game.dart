@@ -161,18 +161,14 @@ class BonfireGame extends BaseGame
 
     await add(map);
 
-    if (_initialDecorations != null) {
-      await Future.forEach<GameComponent>(
-          _initialDecorations!, (element) => add(element));
-    }
-    if (_initialEnemies != null) {
-      await Future.forEach<GameComponent>(
-          _initialEnemies!, (element) => add(element));
-    }
-    if (_initialComponents != null) {
-      await Future.forEach<GameComponent>(
-          _initialComponents!, (element) => add(element));
-    }
+    await Future.wait(
+      [
+        if (_initialDecorations != null) ..._initialDecorations!,
+        if (_initialEnemies != null) ..._initialEnemies!,
+        if (_initialComponents != null) ..._initialComponents!,
+      ].map(add).whereType<Future>(),
+    );
+
     if (player != null) {
       await add(player!);
     }

@@ -48,6 +48,7 @@ class BonfireTiledWidget extends StatefulWidget {
   final TapInGame? onTapUp;
 
   final ValueChanged<BonfireGame>? onReady;
+  final ValueChanged<BonfireGame>? onMapLoaded;
   final Map<String, OverlayWidgetBuilder<BonfireGame>>? overlayBuilderMap;
   final List<String>? initialActiveOverlays;
   final List<GameComponent>? components;
@@ -82,6 +83,7 @@ class BonfireTiledWidget extends StatefulWidget {
     this.onTapDown,
     this.onTapUp,
     this.onReady,
+    this.onMapLoaded,
   }) : super(key: key);
   @override
   _BonfireTiledWidgetState createState() => _BonfireTiledWidgetState();
@@ -96,10 +98,18 @@ class _BonfireTiledWidgetState extends State<BonfireTiledWidget>
   void didUpdateWidget(BonfireTiledWidget oldWidget) {
     if (widget.constructionMode) {
       widget.map.build().then((value) async {
-        await _game?.map.updateTiles(value.map.tiles);
-        _game?.decorations().forEach((d) => d.removeFromParent());
-        _game?.enemies().forEach((e) => e.removeFromParent());
-        value.components?.forEach((d) => _game?.add(d));
+        final game = _game;
+
+        if (game != null) {
+          await game.map.updateTiles(value.map.tiles);
+          game.decorations().forEach((d) => d.removeFromParent());
+          game.enemies().forEach((e) => e.removeFromParent());
+          await Future.wait((value.components ?? [])
+              .map((d) => game.add(d))
+              .where((element) => element != null)
+              .map((e) => e!));
+          widget.onMapLoaded?.call(game);
+        }
       });
     }
     super.didUpdateWidget(oldWidget);
