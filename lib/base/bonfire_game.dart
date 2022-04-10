@@ -9,12 +9,13 @@ import 'package:bonfire/lighting/lighting_component.dart';
 import 'package:bonfire/util/map_explorer.dart';
 import 'package:bonfire/util/mixins/pointer_detector.dart';
 import 'package:flame/input.dart';
+import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 /// Is a customGame where all magic of the Bonfire happen.
 class BonfireGame extends BaseGame
-    with KeyboardEvents
+    with KeyboardEvents, FlameBloc
     implements BonfireGameInterface {
   static const INTERVAL_UPDATE_CACHE = 200;
   static const INTERVAL_UPDATE_ORDER = 253;
@@ -86,6 +87,9 @@ class BonfireGame extends BaseGame
   GameColorFilter? _colorFilter;
 
   ValueChanged<BonfireGame>? onReady;
+
+  @override
+  BonfireGame get game => this;
 
   @override
   LightingInterface? get lighting => _lighting;

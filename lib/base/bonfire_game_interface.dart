@@ -18,6 +18,8 @@ import 'package:flame/game.dart';
 import 'package:flame/particles.dart';
 import 'package:flutter/widgets.dart';
 
+import 'bonfire_game.dart';
+
 ///
 /// Created by
 ///
@@ -31,6 +33,7 @@ import 'package:flutter/widgets.dart';
 /// on 19/11/21
 
 abstract class BonfireGameInterface {
+  BonfireGame get game;
   BuildContext get context;
   Player? get player;
   JoystickController? get joystick;
