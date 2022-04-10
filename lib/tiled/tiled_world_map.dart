@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
@@ -27,10 +28,10 @@ import 'model/tiled_data_object_collision.dart';
 import 'model/tiled_item_tile_set.dart';
 import 'model/tiled_object_properties.dart';
 
-typedef ObjectBuilder = GameComponent Function(
+typedef ObjectBuilder = FutureOr<GameComponent> Function(
     TiledObjectProperties properties);
 
-typedef DynamicObjectBuilder = GameComponent? Function(
+typedef DynamicObjectBuilder = FutureOr<GameComponent?> Function(
   String name,
   TiledObjectProperties properties,
 );
@@ -349,12 +350,13 @@ class TiledWorldMap {
     }
   }
 
-  void _addObjects(ObjectGroup layer) {
-    if (layer.visible != true) return;
+  Future<void> _addObjects(ObjectGroup layer) {
+    if (layer.visible != true) return Future.value();
     double offsetX = ((layer.offsetX ?? 0.0) * _tileWidth) / _tileWidthOrigin;
     double offsetY = ((layer.offsetY ?? 0.0) * _tileHeight) / _tileHeightOrigin;
-    layer.objects?.forEach(
-      (element) {
+    final objects = layer.objects ?? [];
+    return Future.wait(objects.map(
+      (element) async {
         double x =
             (((element.x ?? 0.0) * _tileWidth) / _tileWidthOrigin) + offsetX;
         double y =
@@ -403,7 +405,7 @@ class TiledWorldMap {
             ),
           );
         } else if (_objectsBuilder[element.name] != null) {
-          final object = _objectsBuilder[element.name]?.call(
+          final object = await _objectsBuilder[element.name]?.call(
             TiledObjectProperties(
               Vector2(x, y),
               Vector2(width, height),
@@ -420,7 +422,7 @@ class TiledWorldMap {
           }
         } else {
           if (element.name != null) {
-            final object = _dynamicObjectBuilder!.call(
+            final object = await _dynamicObjectBuilder!.call(
               element.name!,
               TiledObjectProperties(
                 Vector2(x, y),
@@ -439,7 +441,7 @@ class TiledWorldMap {
           }
         }
       },
-    );
+    ));
   }
 
   TiledDataObjectCollision _getCollision(TileSet tileSetContain, int index) {
