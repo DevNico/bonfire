@@ -9,33 +9,6 @@ import '../tiled/model/tiled_world_data.dart';
 import '../util/mixins/pointer_detector.dart';
 
 class BonfireTiledWidget extends StatefulWidget {
-  const BonfireTiledWidget({
-    Key? key,
-    required this.map,
-    this.joystick,
-    this.player,
-    this.interface,
-    this.background,
-    this.constructionMode = false,
-    this.showCollisionArea = false,
-    this.showFPS = false,
-    this.gameController,
-    this.constructionModeColor,
-    this.collisionAreaColor,
-    this.lightingColorGame,
-    this.progress,
-    this.cameraConfig,
-    this.transitionBuilder = AnimatedSwitcher.defaultTransitionBuilder,
-    this.progressTransitionDuration,
-    this.colorFilter,
-    this.components,
-    this.overlayBuilderMap,
-    this.initialActiveOverlays,
-    this.onTapDown,
-    this.onTapUp,
-    this.onReady,
-  }) : super(key: key);
-
   /// The player-controlling component.
   final JoystickController? joystick;
 
@@ -72,6 +45,18 @@ class BonfireTiledWidget extends StatefulWidget {
   /// Represents a map (or world) where the game occurs.
   final TiledWorldMap map;
 
+  /// The [FocusNode] to control the games focus to receive event inputs.
+  /// If omitted, defaults to an internally controlled focus node.
+  final FocusNode? focusNode;
+
+  /// Whether the [focusNode] requests focus once the game is mounted.
+  /// Defaults to true.
+  final bool autofocus;
+
+  /// Initial mouse cursor for this [GameWidget]
+  /// mouse cursor can be changed in runtime using [Game.mouseCursor]
+  final MouseCursor? mouseCursor;
+
   final TapInGame? onTapDown;
   final TapInGame? onTapUp;
 
@@ -82,8 +67,38 @@ class BonfireTiledWidget extends StatefulWidget {
   final Widget? progress;
   final CameraConfig? cameraConfig;
   final AnimatedSwitcherTransitionBuilder transitionBuilder;
-  final Duration? progressTransitionDuration;
+  final Duration progressTransitionDuration;
   final GameColorFilter? colorFilter;
+
+  const BonfireTiledWidget({
+    Key? key,
+    required this.map,
+    this.joystick,
+    this.player,
+    this.interface,
+    this.background,
+    this.constructionMode = false,
+    this.showCollisionArea = false,
+    this.showFPS = false,
+    this.gameController,
+    this.constructionModeColor,
+    this.collisionAreaColor,
+    this.lightingColorGame,
+    this.progress,
+    this.cameraConfig,
+    this.transitionBuilder = AnimatedSwitcher.defaultTransitionBuilder,
+    this.progressTransitionDuration = const Duration(milliseconds: 500),
+    this.colorFilter,
+    this.components,
+    this.overlayBuilderMap,
+    this.initialActiveOverlays,
+    this.onTapDown,
+    this.onTapUp,
+    this.onReady,
+    this.focusNode,
+    this.autofocus = true,
+    this.mouseCursor,
+  }) : super(key: key);
   @override
   _BonfireTiledWidgetState createState() => _BonfireTiledWidgetState();
 }
@@ -130,17 +145,21 @@ class _BonfireTiledWidgetState extends State<BonfireTiledWidget>
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        _buildGame(),
+        if (_game != null)
+          CustomGameWidget(
+            game: _game!,
+            overlayBuilderMap: widget.overlayBuilderMap,
+            initialActiveOverlays: widget.initialActiveOverlays,
+            mouseCursor: widget.mouseCursor,
+            autofocus: widget.autofocus,
+            focusNode: widget.focusNode,
+          ),
         StreamBuilder<bool>(
           stream: _loadingStream.stream,
           builder: (context, snapshot) {
-            bool _loading = true;
-            if (snapshot.hasData) {
-              _loading = snapshot.data!;
-            }
+            bool _loading = !snapshot.hasData || snapshot.data == true;
             return AnimatedSwitcher(
-              duration: widget.progressTransitionDuration ??
-                  Duration(milliseconds: 500),
+              duration: widget.progressTransitionDuration,
               transitionBuilder: widget.transitionBuilder,
               child: _loading ? _defaultProgress() : SizedBox.shrink(),
             );
@@ -154,35 +173,36 @@ class _BonfireTiledWidgetState extends State<BonfireTiledWidget>
     try {
       TiledWorldData tiled = await widget.map.build();
 
-      List<GameComponent> components = (tiled.components ?? []);
-      if (widget.components != null) components.addAll(widget.components!);
-      _game = BonfireGame(
-        context: context,
-        joystickController: widget.joystick,
-        player: widget.player,
-        interface: widget.interface,
-        map: tiled.map,
-        components: components,
-        background: widget.background,
-        constructionMode: widget.constructionMode,
-        showCollisionArea: widget.showCollisionArea,
-        showFPS: widget.showFPS,
-        gameController: widget.gameController,
-        constructionModeColor:
-            widget.constructionModeColor ?? Colors.cyan.withOpacity(0.5),
-        collisionAreaColor: widget.collisionAreaColor ??
-            Colors.lightGreenAccent.withOpacity(0.5),
-        lightingColorGame: widget.lightingColorGame,
-        cameraConfig: widget.cameraConfig,
-        colorFilter: widget.colorFilter,
-        onTapDown: widget.onTapDown,
-        onTapUp: widget.onTapUp,
-        onReady: (game) {
-          _showProgress(false);
-          widget.onReady?.call(game);
-        },
-      );
-      setState(() {});
+      setState(() {
+        List<GameComponent> components = (tiled.components ?? []);
+        components.addAll(widget.components ?? []);
+        _game = BonfireGame(
+          context: context,
+          joystickController: widget.joystick,
+          player: widget.player,
+          interface: widget.interface,
+          map: tiled.map,
+          components: components,
+          background: widget.background,
+          constructionMode: widget.constructionMode,
+          showCollisionArea: widget.showCollisionArea,
+          showFPS: widget.showFPS,
+          gameController: widget.gameController,
+          constructionModeColor:
+              widget.constructionModeColor ?? Colors.cyan.withOpacity(0.5),
+          collisionAreaColor: widget.collisionAreaColor ??
+              Colors.lightGreenAccent.withOpacity(0.5),
+          lightingColorGame: widget.lightingColorGame,
+          cameraConfig: widget.cameraConfig,
+          colorFilter: widget.colorFilter,
+          onTapDown: widget.onTapDown,
+          onTapUp: widget.onTapUp,
+          onReady: (game) {
+            _showProgress(false);
+            widget.onReady?.call(game);
+          },
+        );
+      });
     } catch (e) {
       print('(BonfireTiledWidget) Error: $e');
     }
@@ -196,15 +216,6 @@ class _BonfireTiledWidgetState extends State<BonfireTiledWidget>
             child: CircularProgressIndicator(),
           ),
         );
-  }
-
-  Widget _buildGame() {
-    if (_game == null) return SizedBox.shrink();
-    return CustomGameWidget(
-      game: _game!,
-      overlayBuilderMap: widget.overlayBuilderMap,
-      initialActiveOverlays: widget.initialActiveOverlays,
-    );
   }
 
   void _showProgress(bool show) async {

@@ -6,13 +6,6 @@ import '../util/mixins/pointer_detector.dart';
 /// Widget used to run the Game
 /// This widget also is responsible in capture gesture with `Listener`
 class CustomGameWidget<T extends Game> extends StatelessWidget {
-  const CustomGameWidget({
-    Key? key,
-    required this.game,
-    this.overlayBuilderMap,
-    this.initialActiveOverlays,
-  }) : super(key: key);
-
   /// instance of the game
   final T game;
 
@@ -21,6 +14,28 @@ class CustomGameWidget<T extends Game> extends StatelessWidget {
 
   /// "Overlay" which must be shown in the game.
   final List<String>? initialActiveOverlays;
+
+  /// The [FocusNode] to control the games focus to receive event inputs.
+  /// If omitted, defaults to an internally controlled focus node.
+  final FocusNode? focusNode;
+
+  /// Whether the [focusNode] requests focus once the game is mounted.
+  /// Defaults to true.
+  final bool autofocus;
+
+  /// Initial mouse cursor for this [GameWidget]
+  /// mouse cursor can be changed in runtime using [Game.mouseCursor]
+  final MouseCursor? mouseCursor;
+
+  const CustomGameWidget({
+    Key? key,
+    required this.game,
+    this.overlayBuilderMap,
+    this.initialActiveOverlays,
+    this.focusNode,
+    this.autofocus = true,
+    this.mouseCursor,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +63,9 @@ class CustomGameWidget<T extends Game> extends StatelessWidget {
           game: game,
           overlayBuilderMap: overlayBuilderMap,
           initialActiveOverlays: initialActiveOverlays,
+          focusNode: focusNode,
+          autofocus: autofocus,
+          mouseCursor: mouseCursor,
         ),
       ),
     );
