@@ -1,22 +1,70 @@
 import 'dart:async';
 
-import 'package:bonfire/base/base_game.dart';
-import 'package:bonfire/base/bonfire_game_interface.dart';
-import 'package:bonfire/bonfire.dart';
-import 'package:bonfire/camera/bonfire_camera.dart';
-import 'package:bonfire/color_filter/color_filter_component.dart';
-import 'package:bonfire/lighting/lighting_component.dart';
-import 'package:bonfire/util/map_explorer.dart';
-import 'package:bonfire/util/mixins/pointer_detector.dart';
 import 'package:flame/input.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../bonfire.dart';
+import '../camera/bonfire_camera.dart';
+import '../color_filter/color_filter_component.dart';
+import '../lighting/lighting_component.dart';
+import '../util/map_explorer.dart';
+import '../util/mixins/pointer_detector.dart';
+import 'base_game.dart';
+import 'bonfire_game_interface.dart';
+
 /// Is a customGame where all magic of the Bonfire happen.
 class BonfireGame extends BaseGame
     with KeyboardEvents, FlameBloc
     implements BonfireGameInterface {
+  BonfireGame({
+    required this.context,
+    required this.map,
+    JoystickController? joystickController,
+    this.player,
+    this.interface,
+    List<Enemy>? enemies,
+    List<GameDecoration>? decorations,
+    List<GameComponent>? components,
+    this.background,
+    this.constructionMode = false,
+    this.showCollisionArea = false,
+    this.gameController,
+    this.constructionModeColor,
+    this.collisionAreaColor,
+    this.lightingColorGame,
+    this.showFPS = false,
+    this.onReady,
+    this.onLoaded,
+    this.onTapDown,
+    this.onTapUp,
+    GameColorFilter? colorFilter,
+    CameraConfig? cameraConfig,
+  })  : _joystickController = joystickController,
+        super(camera: BonfireCamera(cameraConfig ?? CameraConfig())) {
+    _initialEnemies = enemies;
+    _initialDecorations = decorations;
+    _initialComponents = components;
+    _colorFilter = colorFilter ?? GameColorFilter();
+    debugMode = constructionMode;
+
+    camera.setGame(this);
+    camera.target ??= player;
+
+    _interval = IntervalTick(
+      INTERVAL_UPDATE_CACHE,
+      tick: _updateTempList,
+    );
+    _intervalUpdateOder = IntervalTick(
+      INTERVAL_UPDATE_ORDER,
+      tick: updateOrderPriority,
+    );
+    _intervalAllCollisions = IntervalTick(
+      INTERVAL_UPDATE_COLLISIONS,
+      tick: () => scheduleMicrotask(_updateAllCollisions),
+    );
+  }
   static const INTERVAL_UPDATE_CACHE = 200;
   static const INTERVAL_UPDATE_ORDER = 253;
   static const INTERVAL_UPDATE_COLLISIONS = 1003;
@@ -87,6 +135,7 @@ class BonfireGame extends BaseGame
   GameColorFilter? _colorFilter;
 
   ValueChanged<BonfireGame>? onReady;
+  ValueChanged<BonfireGame>? onLoaded;
 
   @override
   BonfireGame get game => this;
@@ -99,53 +148,6 @@ class BonfireGame extends BaseGame
 
   @override
   JoystickController? get joystick => _joystickController;
-
-  BonfireGame({
-    required this.context,
-    required this.map,
-    JoystickController? joystickController,
-    this.player,
-    this.interface,
-    List<Enemy>? enemies,
-    List<GameDecoration>? decorations,
-    List<GameComponent>? components,
-    this.background,
-    this.constructionMode = false,
-    this.showCollisionArea = false,
-    this.gameController,
-    this.constructionModeColor,
-    this.collisionAreaColor,
-    this.lightingColorGame,
-    this.showFPS = false,
-    this.onReady,
-    this.onTapDown,
-    this.onTapUp,
-    GameColorFilter? colorFilter,
-    CameraConfig? cameraConfig,
-  })  : _joystickController = joystickController,
-        super(camera: BonfireCamera(cameraConfig ?? CameraConfig())) {
-    _initialEnemies = enemies;
-    _initialDecorations = decorations;
-    _initialComponents = components;
-    _colorFilter = colorFilter ?? GameColorFilter();
-    debugMode = constructionMode;
-
-    camera.setGame(this);
-    camera.target ??= player;
-
-    _interval = IntervalTick(
-      INTERVAL_UPDATE_CACHE,
-      tick: _updateTempList,
-    );
-    _intervalUpdateOder = IntervalTick(
-      INTERVAL_UPDATE_ORDER,
-      tick: updateOrderPriority,
-    );
-    _intervalAllCollisions = IntervalTick(
-      INTERVAL_UPDATE_COLLISIONS,
-      tick: () => scheduleMicrotask(_updateAllCollisions),
-    );
-  }
 
   @override
   Future<void>? onLoad() async {
@@ -183,6 +185,7 @@ class BonfireGame extends BaseGame
       await add(gameController!);
     }
     // isLoaded = true;
+    onLoaded?.call(this);
   }
 
   @override

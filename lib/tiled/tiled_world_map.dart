@@ -129,7 +129,7 @@ class TiledWorldMap {
     }
 
     if (layer is ObjectGroup) {
-      _addObjects(layer);
+      await _addObjects(layer);
     }
 
     if (layer is ImageLayer) {
@@ -546,7 +546,13 @@ class TiledWorldMap {
     int widthCount,
   ) {
     try {
-      TileSetItem tileSetItemList = tileSetContain.tiles!.firstWhere(
+      final tiles = (tileSetContain.tiles ?? []);
+
+      if (!tiles.any((element) => element.id == index)) {
+        return null;
+      }
+
+      TileSetItem tileSetItemList = tiles.firstWhere(
         (element) => element.id == index,
       );
 

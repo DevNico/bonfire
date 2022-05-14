@@ -1,13 +1,41 @@
 import 'dart:async';
 
-import 'package:bonfire/base/custom_game_widget.dart';
-import 'package:bonfire/bonfire.dart';
-import 'package:bonfire/tiled/model/tiled_world_data.dart';
-import 'package:bonfire/util/mixins/pointer_detector.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
+import '../base/custom_game_widget.dart';
+import '../bonfire.dart';
+import '../tiled/model/tiled_world_data.dart';
+import '../util/mixins/pointer_detector.dart';
+
 class BonfireTiledWidget extends StatefulWidget {
+  const BonfireTiledWidget({
+    Key? key,
+    required this.map,
+    this.joystick,
+    this.player,
+    this.interface,
+    this.background,
+    this.constructionMode = false,
+    this.showCollisionArea = false,
+    this.showFPS = false,
+    this.gameController,
+    this.constructionModeColor,
+    this.collisionAreaColor,
+    this.lightingColorGame,
+    this.progress,
+    this.cameraConfig,
+    this.transitionBuilder = AnimatedSwitcher.defaultTransitionBuilder,
+    this.progressTransitionDuration,
+    this.colorFilter,
+    this.components,
+    this.overlayBuilderMap,
+    this.initialActiveOverlays,
+    this.onTapDown,
+    this.onTapUp,
+    this.onReady,
+  }) : super(key: key);
+
   /// The player-controlling component.
   final JoystickController? joystick;
 
@@ -48,7 +76,6 @@ class BonfireTiledWidget extends StatefulWidget {
   final TapInGame? onTapUp;
 
   final ValueChanged<BonfireGame>? onReady;
-  final ValueChanged<BonfireGame>? onMapLoaded;
   final Map<String, OverlayWidgetBuilder<BonfireGame>>? overlayBuilderMap;
   final List<String>? initialActiveOverlays;
   final List<GameComponent>? components;
@@ -57,34 +84,6 @@ class BonfireTiledWidget extends StatefulWidget {
   final AnimatedSwitcherTransitionBuilder transitionBuilder;
   final Duration? progressTransitionDuration;
   final GameColorFilter? colorFilter;
-
-  const BonfireTiledWidget({
-    Key? key,
-    required this.map,
-    this.joystick,
-    this.player,
-    this.interface,
-    this.background,
-    this.constructionMode = false,
-    this.showCollisionArea = false,
-    this.showFPS = false,
-    this.gameController,
-    this.constructionModeColor,
-    this.collisionAreaColor,
-    this.lightingColorGame,
-    this.progress,
-    this.cameraConfig,
-    this.transitionBuilder = AnimatedSwitcher.defaultTransitionBuilder,
-    this.progressTransitionDuration,
-    this.colorFilter,
-    this.components,
-    this.overlayBuilderMap,
-    this.initialActiveOverlays,
-    this.onTapDown,
-    this.onTapUp,
-    this.onReady,
-    this.onMapLoaded,
-  }) : super(key: key);
   @override
   _BonfireTiledWidgetState createState() => _BonfireTiledWidgetState();
 }
@@ -105,10 +104,9 @@ class _BonfireTiledWidgetState extends State<BonfireTiledWidget>
           game.decorations().forEach((d) => d.removeFromParent());
           game.enemies().forEach((e) => e.removeFromParent());
           await Future.wait((value.components ?? [])
-              .map((d) => game.add(d))
+              .map(game.add)
               .where((element) => element != null)
               .map((e) => e!));
-          widget.onMapLoaded?.call(game);
         }
       });
     }
