@@ -10,6 +10,8 @@ class JoystickDirectional {
   final EdgeInsets margin;
   final Color color;
 
+  Offset? _source;
+
   Paint? _paintBackground;
   Paint? _paintKnob;
 
@@ -55,12 +57,13 @@ class JoystickDirectional {
   void initialize(Vector2 _screenSize, JoystickController joystickController) {
     this._screenSize = _screenSize;
     _joystickController = joystickController;
-    Offset osBackground = Offset(
-      margin.left,
-      _screenSize.y - margin.bottom,
+    _source = Offset(
+      margin.left == 0 ? _screenSize.x - margin.right : margin.left,
+      margin.top == 0 ? _screenSize.y - margin.bottom : margin.top,
     );
+
     _backgroundRect = Rect.fromCircle(
-      center: osBackground,
+      center: _source!,
       radius: size / 2,
     );
 
@@ -276,10 +279,19 @@ class JoystickDirectional {
   }
 
   void _updateDirectionalRect(Offset position) {
-    if (_screenSize != null &&
-        (position.dx > _screenSize!.x / 3 ||
-            position.dy < _screenSize!.y / 3 ||
-            isFixed)) return;
+    if (_screenSize == null || isFixed || _source == null) {
+      return;
+    }
+
+    final distanceX = (position.dx - _source!.dx).abs();
+    if (distanceX > _screenSize!.x / 3) {
+      return;
+    }
+
+    final distanceY = (position.dy - _source!.dy).abs();
+    if (distanceY > _screenSize!.y / 3) {
+      return;
+    }
 
     _backgroundRect = Rect.fromCircle(
       center: position,
