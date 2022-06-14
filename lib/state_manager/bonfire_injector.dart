@@ -33,9 +33,9 @@ class BonfireInjector {
   /// Always that you call [get] this will be return the same instance.
   /// When you use this to register a [StateController] all components that use
   /// he will be use the same instance.
-  void put<T>(BuildDependency<T> build) {
-    _dependencies[T] = build;
-    _dependenciesSingleton[T] = null;
+  void put<T>(T dep) {
+    _dependencies.remove(T);
+    _dependenciesSingleton[T] = dep;
   }
 
   /// Used to register dependency as a Factory.
